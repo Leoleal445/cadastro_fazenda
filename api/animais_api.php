@@ -4,14 +4,29 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
 $acao = $_REQUEST['acao'] ?? '';
-$pdo  = getConnection();
 
-match($acao) {
-  'listar'  => listar($pdo),
-  'salvar'  => salvar($pdo),
-  'excluir' => excluir($pdo),
-  default   => json_encode(['erro' => 'Ação inválida'])
-};
+try {
+  $pdo  = getConnection();
+} catch (PDOException $e) {
+  echo json_encode([
+    'erro' => 'Erro de conexão com o banco de dados. Verifique se as variáveis de ambiente (DB_HOST, DB_NAME, DB_USER, DB_PASS) estão configuradas corretamente em produção. Detalhes: ' . $e->getMessage()
+  ]);
+  exit;
+}
+
+try {
+  match($acao) {
+    'listar'  => listar($pdo),
+    'salvar'  => salvar($pdo),
+    'excluir' => excluir($pdo),
+    default   => print json_encode(['erro' => 'Ação inválida'])
+  };
+} catch (Throwable $e) {
+  echo json_encode([
+    'erro' => 'Erro na execução da API: ' . $e->getMessage()
+  ]);
+  exit;
+}
 function listar(PDO $pdo): void {
   $page     = (int)($_GET['page'] ?? 1);
   $perPage  = 10;

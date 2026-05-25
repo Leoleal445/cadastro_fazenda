@@ -84,26 +84,42 @@ async function carregarAnimais() {
   const brinco = document.getElementById('filtBrinco').value;
   const sexo   = document.getElementById('filtSexo').value;
   const url    = `api/animais_api.php?acao=listar&page=${paginaAtual}&brinco=${brinco}&sexo=${sexo}`;
-  const res    = await fetch(url);
-  const dados  = await res.json();
-
+  
   const tbody = document.getElementById('tabelaAnimais');
-  tbody.innerHTML = dados.animais.map(a => `
-    <tr>
-      <td>${a.id}</td><td>${a.fazenda_id}</td><td>${a.brinco}</td>
-      <td><span class="badge bg-${a.sexo==='Macho'?'primary':'danger'}">${a.sexo}</span></td>
-      <td>${a.raca}</td><td>${a.peso}</td>
-      <td>
-        <button class="btn btn-sm btn-warning" onclick="editar(${JSON.stringify(a)})">Editar</button>
-        <button class="btn btn-sm btn-danger"  onclick="excluir(${a.id})">Excluir</button>
-      </td>
-    </tr>`).join('');
-
   const pg = document.getElementById('paginacao');
-  pg.innerHTML = '';
-  for (let i=1; i <= dados.total_paginas; i++) {
-    pg.innerHTML += `<button class="btn btn-sm ${i===paginaAtual?'btn-dark':'btn-outline-secondary'}"
-      onclick="irPara(${i})">${i}</button>`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Erro HTTP: ${res.status}`);
+    }
+    const dados = await res.json();
+    
+    if (dados.erro) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center py-4 font-monospace">${dados.erro}</td></tr>`;
+      pg.innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = dados.animais.map(a => `
+      <tr>
+        <td>${a.id}</td><td>${a.fazenda_id}</td><td>${a.brinco}</td>
+        <td><span class="badge bg-${a.sexo==='Macho'?'primary':'danger'}">${a.sexo}</span></td>
+        <td>${a.raca}</td><td>${a.peso}</td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick='editar(${JSON.stringify(a).replace(/'/g, "&#39;")})'>Editar</button>
+          <button class="btn btn-sm btn-danger"  onclick="excluir(${a.id})">Excluir</button>
+        </td>
+      </tr>`).join('');
+
+    pg.innerHTML = '';
+    for (let i=1; i <= dados.total_paginas; i++) {
+      pg.innerHTML += `<button class="btn btn-sm ${i===paginaAtual?'btn-dark':'btn-outline-secondary'}"
+        onclick="irPara(${i})">${i}</button>`;
+    }
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center py-4">Falha ao carregar animais: ${error.message}</td></tr>`;
+    pg.innerHTML = '';
   }
 }
 
